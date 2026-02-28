@@ -1,0 +1,91 @@
+{
+  "name": "cocomineapi-vpn-service",
+  "version": "1.19.0",
+  "description": "CocomineAPI CocomineVPN Microservice",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "start": "nodemon src/index.ts",
+    "copy": "copy-files-from-to",
+    "build": "tsc --project ./ && yarn run copy",
+    "proto:gen": "yarn proto:gen:auth:main && yarn proto:gen:auth:services",
+    "proto:gen:auth:main": "yarn run grpc_tools_node_protoc --ts_proto_out=./src/grpc/auth --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false --proto_path=./protos ./protos/*.proto",
+    "proto:gen:auth:services": "yarn run grpc_tools_node_protoc --ts_proto_out=./services/auth/src/grpc --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false --proto_path=./protos ./protos/*.proto"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "copyFiles": [
+    {
+      "from": "src/vpn/(id)/profile/*.ovpn",
+      "to": "dist/vpn/(id)/profile/"
+    },
+    {
+      "from": "src/vpn/(id)/profile/*.vpn",
+      "to": "dist/vpn/(id)/profile/"
+    },
+    {
+      "from": "src/vpn/[VM_startup_banner]/flag/*.png",
+      "to": "dist/vpn/"
+    },
+    {
+      "from": "src/vpn/[VM_startup_banner]/*.ttf",
+      "to": "dist/vpn/"
+    },
+    {
+      "from": "src/vpn/[Email_notify]/*.html",
+      "to": "dist/vpn/"
+    }
+  ],
+  "copyFilesSettings": {
+    "whenFileExists": "overwrite"
+  },
+  "dependencies": {
+    "@azure/arm-compute": "^21.2.0",
+    "@azure/identity": "^4.0.0",
+    "@google-cloud/compute": "^6.6.0",
+    "@googleapis/gmail": "^9.0.0",
+    "@googleapis/oauth2": "^1.0.5",
+    "bullmq": "^5.66.4",
+    "cloudflare-ips": "^0.3.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "figlet": "^1.7.0",
+    "firebase-admin": "^12.4.0",
+    "jwks-rsa": "^3.1.0",
+    "log4js": "^6.9.1",
+    "long": "^5.3.2",
+    "mysql2": "^3.16.0",
+    "nice-grpc": "^2.1.10",
+    "node-schedule": "^2.1.1",
+    "protobufjs": "^8.0.0",
+    "pureimage": "^0.4.18",
+    "redis": "^4.6.12",
+    "websocket-express": "^4.0.1",
+    "xss": "^1.0.14"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@types/cookie-parser": "^1.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.6",
+    "@types/figlet": "^1.5.8",
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.10.4",
+    "@types/node-fetch": "^2.6.11",
+    "@types/node-schedule": "^2.1.5",
+    "@types/ws": "8",
+    "copy-files-from-to": "^3.11.0",
+    "grpc-tools": "^1.13.1",
+    "jest": "^30.2.0",
+    "nodemon": "^3.0.2",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "ts-proto": "^2.11.2",
+    "typescript": "^5.3.3",
+    "ws": "8"
+  },
+  "packageManager": "yarn@4.12.0"
+}

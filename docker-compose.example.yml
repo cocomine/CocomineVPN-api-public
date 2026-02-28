@@ -1,0 +1,63 @@
+
+services:
+  vpn:
+    build: ./services/vpn
+    restart: always
+    environment:
+      - AZURE_CLIENT_ID=
+      - AZURE_CLIENT_SECRET=
+      - AZURE_TENANT_ID=
+      - LOG_LEVEL=info
+      - SUBSCRIPTION_ID=
+      - PORT=8088
+      - DISCORD_WEBHOOK_URL=
+      - GMAIL_CLIENT_ID=
+      - GMAIL_CLIENT_SECRET=
+      - GMAIL_REFRESH_TOKEN=
+      - AUTH_GRPC_URL=auth:50051
+    ports:
+      - "8088:8088"
+    networks:
+      - apiNet
+    depends_on:
+      - redis
+      - auth
+    volumes:
+        - ./config:/app/config
+        - ./logs:/app/logs
+
+  auth:
+    build: ./services/auth
+    restart: always
+    environment:
+      - LOG_LEVEL=info
+      - PORT=3001
+      - GRPC_PORT=50051
+      - REDIS_URL=redis://redis:6379
+      - ODIC_CLIENT_ID= #fixed
+      - ODIC_CLIENT_SECRET= #27/12/2025
+      - TZ=Asia/Hong_Kong
+    networks:
+      - apiNet
+    depends_on:
+      - redis
+    volumes:
+      - ./services/auth/config:/app/config
+      - ./services/auth/logs:/app/logs
+      - ./services/auth/keys:/app/keys
+
+  redis:
+    image: redis:latest
+    restart: always
+    networks:
+      - apiNet
+    volumes:
+      - redis-data:/data
+
+networks:
+  apiNet:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local

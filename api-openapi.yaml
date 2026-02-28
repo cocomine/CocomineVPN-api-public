@@ -1,0 +1,1028 @@
+openapi: "3.0.3"
+info:
+    title: "Cocomine API"
+    description: "HTTP & WS endpoints for Cocomine VPN manager"
+    version: "1.0"
+servers:
+    -   url: "https://api.cocomine.cc"
+        description: "Production"
+    -   url: "http://localhost:8088"
+        description: "Local"
+components:
+    securitySchemes:
+        CfAccessHeader:
+            type: apiKey
+            in: header
+            name: Cf-Access-Jwt-Assertion
+            description: "Cloudflare Access JWT (web)."
+        CfAccessCookie:
+            type: apiKey
+            in: cookie
+            name: CF_Authorization
+            description: "Cloudflare Access JWT (web cookie)."
+        AppCheck:
+            type: http
+            scheme: bearer
+            bearerFormat: "Firebase App Check"
+        CfBearer:
+            type: http
+            scheme: bearer
+            bearerFormat: "Cloudflare Access"
+    schemas:
+        Error:
+            type: object
+            description: "Standard error envelope"
+            properties:
+                code:
+                    type: integer
+                    description: "Application status code"
+                message:
+                    type: string
+                    description: "Human-readable error message"
+        BasicResponse:
+            type: object
+            description: "Minimal response envelope"
+            properties:
+                code:
+                    type: integer
+                    description: "Application status code"
+                message:
+                    type: string
+                    description: "Short message"
+        VM:
+            type: object
+            description: "VPN VM runtime state"
+            properties:
+                _name:
+                    type: string
+                    description: "Display name"
+                    example: "Tokyo-1"
+                _status:
+                    type: string
+                    description: "Provider status string"
+                    example: "RUNNING"
+                _id:
+                    type: string
+                    description: "Unique VM identifier"
+                    example: "tokyo-1"
+                _zone:
+                    type: string
+                    description: "Provider zone/region"
+                    example: "asia-northeast1-a"
+                _url:
+                    type: string
+                    nullable: true
+                    description: "Optional access URL"
+                    example: "https://vpn.tokyo.example"
+                _country:
+                    type: string
+                    nullable: true
+                    description: "Country/region code"
+                _profiles:
+                    type: array
+                    description: "Available VPN profiles"
+                    items:
+                        $ref: '#/components/schemas/Profile'
+                _provider:
+                    type: string
+                    enum: [ google, azure ]
+                    description: "Cloud provider"
+                    example: google
+                _isPowerOn:
+                    type: boolean
+                    description: "Whether VM is powered on"
+                    example: true
+                _readonly:
+                    type: string
+                    enum: [ disable, startOnly, stopOnly, readOnly ]
+                    description: "Control guardrails"
+                    example: disable
+                _expired:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    description: "Auto-shutdown deadline"
+                    example: "2024-01-01T15:04:05Z"
+        Profile:
+            type: object
+            description: "VPN profileType metadata"
+            example:
+                -   type: OpenVPN
+                    name: "OpenVPN"
+                    filename: "OpenVPN_JP.ovpn"
+                -   type: SS
+                    name: "Shadowsocks"
+                    url: "ss://..."
+            properties:
+                type:
+                    type: string
+                    enum: [ OpenVPN, SoftEther, SS, socks5 ]
+                    description: "Profile protocol/type"
+                filename:
+                    type: string
+                    description: "Template filename (for OpenVPN/SoftEther)"
+                    nullable: true
+                url:
+                    type: string
+                    description: "Direct profileType URL (for SS/socks5)"
+                    nullable: true
+                name:
+                    type: string
+                    description: "Display name"
+        UserInfo:
+            type: object
+            description: "Claims resolved from CF Access"
+            properties:
+                email:
+                    type: string
+                    description: "User email"
+                    example: "example@example.com"
+                name:
+                    type: string
+                    nullable: true
+                    description: "Display name"
+                    example: "John Doe"
+                aud:
+                    oneOf:
+                        -   type: array
+                            items: { type: string, example: "xxxx" }
+                        -   type: string
+                            example: "xxxx"
+                    description: "Audience claim"
+                sub:
+                    type: string
+                    nullable: true
+                    description: "Subject claim"
+                    example: "xxxx"
+        TokenResponse:
+            type: object
+            description: "App JWT response"
+            properties:
+                code:
+                    type: integer
+                    description: "Application status code"
+                    example: 200
+                data:
+                    type: object
+                    description: "Payload wrapper"
+                    properties:
+                        token:
+                            type: string
+                            description: "Signed JWT"
+                            example: "Signed jwt token"
+        ClientConfigResponse:
+            type: object
+            description: "ODIC client bootstrap"
+            properties:
+                code:
+                    type: integer
+                    description: "Application status code"
+                    example: 200
+                data:
+                    type: object
+                    description: "Client credentials"
+                    properties:
+                        clientSecret:
+                            type: string
+                            description: "OIDC client secret"
+                            example: "ODIC client secret"
+                        clientId:
+                            type: string
+                            description: "OIDC client id"
+                            example: "ODIC client id"
+        TicketResponse:
+            type: object
+            description: "WS ticket issuance response"
+            properties:
+                code:
+                    type: integer
+                    description: "Application status code"
+                    example: 200
+                message:
+                    type: string
+                    description: "Result message"
+                    example: "Ticket generated."
+                data:
+                    type: object
+                    description: "Ticket payload"
+                    properties:
+                        ticket:
+                            type: string
+                            description: "One-time WS ticket"
+                            example: "Ticket token string"
+    examples:
+        ErrorExpired:
+            summary: Token expired
+            description: "Expired token"
+            value:
+                code: 401
+                message: "Token Expired"
+        ErrorMissing:
+            summary: Missing token
+            value:
+                code: 401
+                message: "Missing required cf authorization token"
+        ErrorInvalid:
+            summary: Invalid token
+            description: "Invalid token"
+            value:
+                code: 403
+                message: "Invalid Token"
+        ErrorAUD:
+            summary: "AUD not allowed"
+            description: "AUD not allowed"
+            value:
+                code: 403
+                message: "You dont have permission to access this resource"
+paths:
+    #OK
+    /:
+        get:
+            summary: Root
+            description: "Default landing endpoint"
+            responses:
+                '200':
+                    description: Default message
+                    content:
+                        application/json:
+                            example:
+                                code: 200
+                                message: "Please define the api you want to use."
+                            schema:
+                                $ref: '#/components/schemas/BasicResponse'
+    #OK
+    /ping:
+        get:
+            summary: Health check
+            description: "Simple liveness probe"
+            responses:
+                '200':
+                    description: Pong
+                    content:
+                        application/json:
+                            example:
+                                code: 200
+                                message: "pong"
+                            schema:
+                                $ref: '#/components/schemas/BasicResponse'
+    #OK
+    /auth:
+        get:
+            summary: Verify Cloudflare Access session
+            description: "Confirms CF Access JWT and session validity"
+            security:
+                -   CfAccessHeader: [ ]
+                -   CfAccessCookie: [ ]
+            responses:
+                '200':
+                    description: Authorized
+                    content:
+                        application/json:
+                            example:
+                                code: 200
+                                message: "OK!"
+                            schema:
+                                $ref: '#/components/schemas/BasicResponse'
+                '401':
+                    description: Missing/Expired token
+                    content:
+                        application/json:
+                            examples:
+                                expired:
+                                    $ref: '#/components/examples/ErrorExpired'
+                                missing:
+                                    $ref: '#/components/examples/ErrorMissing'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '403':
+                    description: Invalid token
+                    content:
+                        application/json:
+                            examples:
+                                invalid:
+                                    $ref: '#/components/examples/ErrorInvalid'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '500':
+                    description: Internal error
+                    content:
+                        application/json:
+                            example:
+                                code: 500
+                                message: "Internal server error"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+    #OK
+    /auth/odic:
+        get:
+            summary: App login bootstrap
+            description: "Returns OIDC client secret/id after Firebase App Check verification"
+            security:
+                -   AppCheck: [ ]
+            responses:
+                '200':
+                    description: Client config
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ClientConfigResponse'
+                '401':
+                    description: Missing app check token
+                    content:
+                        application/json:
+                            example:
+                                code: 401
+                                message: "Missing app check token"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '403':
+                    description: Invalid app check token
+                    content:
+                        application/json:
+                            example:
+                                code: 401
+                                message: "Invalid app check token"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '500':
+                    description: Internal error
+                    content:
+                        application/json:
+                            example:
+                                code: 500
+                                message: "Internal server error"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+    #OK
+    /auth/odic/exchange:
+        get:
+            summary: Exchange CF token for app JWT
+            description: "Validate CF Access token then issue app JWT"
+            security:
+                -   CfBearer: [ ]
+            responses:
+                '200':
+                    description: JWT issued
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TokenResponse'
+                '401':
+                    description: Missing/expired token
+                    content:
+                        application/json:
+                            examples:
+                                expired:
+                                    $ref: '#/components/examples/ErrorExpired'
+                                missing:
+                                    $ref: '#/components/examples/ErrorMissing'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '403':
+                    description: Token invalid
+                    content:
+                        application/json:
+                            examples:
+                                invalid:
+                                    $ref: '#/components/examples/ErrorInvalid'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '500':
+                    description: Internal error
+                    content:
+                        application/json:
+                            example:
+                                code: 500
+                                message: "Internal server error"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+    #OK
+    /userinfo:
+        get:
+            summary: Get authenticated user info
+            description: "Returns decoded CF Access claims + profileType name when available"
+            security:
+                -   CfAccessHeader: [ ]
+                -   CfAccessCookie: [ ]
+            responses:
+                '200':
+                    description: User payload
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UserInfo'
+                '401':
+                    description: Missing/expired token
+                    content:
+                        application/json:
+                            examples:
+                                expired:
+                                    $ref: '#/components/examples/ErrorExpired'
+                                missing:
+                                    $ref: '#/components/examples/ErrorMissing'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '403':
+                    description: Invalid token
+                    content:
+                        application/json:
+                            examples:
+                                invalid:
+                                    $ref: '#/components/examples/ErrorInvalid'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '500':
+                    description: Internal error
+                    content:
+                        application/json:
+                            example:
+                                code: 500
+                                message: "Internal server error"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+    #OK
+    /vpn:
+        get:
+            summary: List VPN servers
+            description: "Returns current VM status list with next/last refresh timestamps"
+            security:
+                -   CfAccessHeader: [ ]
+                -   CfAccessCookie: [ ]
+            responses:
+                '200':
+                    description: Server list
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    code:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Get all VPN server success"
+                                    last_update:
+                                        type: string
+                                        format: date-time
+                                        example: "2024-01-01T12:00:00Z"
+                                    next_update:
+                                        type: string
+                                        format: date-time
+                                        example: "2024-01-01T12:05:00Z"
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/VM'
+                '401':
+                    description: Missing/expired token
+                    content:
+                        application/json:
+                            examples:
+                                expired:
+                                    $ref: '#/components/examples/ErrorExpired'
+                                missing:
+                                    $ref: '#/components/examples/ErrorMissing'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '403':
+                    description: AUD not allowed / Invalid token
+                    content:
+                        application/json:
+                            examples:
+                                aud:
+                                    $ref: '#/components/examples/ErrorAUD'
+                                invalid:
+                                    $ref: '#/components/examples/ErrorInvalid'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '500':
+                    description: Internal error
+                    content:
+                        application/json:
+                            example:
+                                code: 500
+                                message: "Internal server error"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+    #OK
+    /vpn/{id}:
+        parameters:
+            -   name: id
+                in: path
+                required: true
+                example: "tokyo-1"
+                schema:
+                    type: string
+        #OK
+        get:
+            summary: Get VPN server detail
+            description: "Fetch VM metadata and status by id"
+            security:
+                -   CfAccessHeader: [ ]
+                -   CfAccessCookie: [ ]
+            responses:
+                '200':
+                    description: Server detail
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    code:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Get VPN server tokyo-1 success"
+                                    data:
+                                        $ref: '#/components/schemas/VM'
+                '400':
+                    description: VPN server ID format error
+                    content:
+                        application/json:
+                            example:
+                                code: 400
+                                message: "VPN server ID format error"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '404':
+                    description: Server not found
+                    content:
+                        application/json:
+                            example:
+                                code: 404
+                                message: "Not found VPN server tokyo-1"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '401':
+                    description: Missing/expired token
+                    content:
+                        application/json:
+                            examples:
+                                expired:
+                                    $ref: '#/components/examples/ErrorExpired'
+                                missing:
+                                    $ref: '#/components/examples/ErrorMissing'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '403':
+                    description: AUD not allowed / Invalid token
+                    content:
+                        application/json:
+                            examples:
+                                aud:
+                                    $ref: '#/components/examples/ErrorAUD'
+                                invalid:
+                                    $ref: '#/components/examples/ErrorInvalid'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '500':
+                    description: Internal error
+                    content:
+                        application/json:
+                            example:
+                                code: 500
+                                message: "Internal server error"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+        #OK
+        patch:
+            summary: Extend online time (if within 60 min of expiry)
+            description: "Extend expiry by 4 hours when within 60 minutes of shutdown"
+            security:
+                -   CfAccessHeader: [ ]
+                -   CfAccessCookie: [ ]
+            responses:
+                '200':
+                    description: Extended
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    code:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Extended VPN server tokyo-1 online time success"
+                                    data:
+                                        $ref: '#/components/schemas/VM'
+                '400':
+                    description: VPN server ID format error
+                    content:
+                        application/json:
+                            example:
+                                code: 400
+                                message: "VPN server ID format error"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '462':
+                    description: Not within 60 minutes window
+                    content:
+                        application/json:
+                            example:
+                                code: 462
+                                message: "The expired time is not in 60 min."
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '463':
+                    description: VM offline
+                    content:
+                        application/json:
+                            example:
+                                code: 463
+                                message: "VM tokyo-1 is not online"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '404':
+                    description: Server not found
+                    content:
+                        application/json:
+                            example:
+                                code: 404
+                                message: "Not found VPN server tokyo-1"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '401':
+                    description: Missing/expired token
+                    content:
+                        application/json:
+                            examples:
+                                expired:
+                                    $ref: '#/components/examples/ErrorExpired'
+                                missing:
+                                    $ref: '#/components/examples/ErrorMissing'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '403':
+                    description: AUD not allowed / Invalid token
+                    content:
+                        application/json:
+                            examples:
+                                aud:
+                                    $ref: '#/components/examples/ErrorAUD'
+                                invalid:
+                                    $ref: '#/components/examples/ErrorInvalid'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '500':
+                    description: Internal error
+                    content:
+                        application/json:
+                            example:
+                                code: 500
+                                message: "Internal server error"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+        #OK
+        put:
+            summary: Start or stop VPN server
+            description: "Request power change with START/STOP"
+            security:
+                -   CfAccessHeader: [ ]
+                -   CfAccessCookie: [ ]
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        examples:
+                            start:
+                                summary: Start server
+                                value:
+                                    target_state: START
+                            stop:
+                                summary: Stop server
+                                value:
+                                    target_state: STOP
+                        schema:
+                            type: object
+                            required: [ target_state ]
+                            properties:
+                                target_state:
+                                    type: string
+                                    enum: [ START, STOP ]
+            responses:
+                '200':
+                    description: Command accepted
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    code:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "VPN server tokyo-1 START success"
+                                    data:
+                                        $ref: '#/components/schemas/VM'
+                '400':
+                    description: Request format error
+                    content:
+                        application/json:
+                            examples:
+                                missing:
+                                    description: "Missing body parameter"
+                                    value:
+                                        code: 400
+                                        message: "Missing body parameter"
+                                invalid:
+                                    description: "Invalid body parameter"
+                                    value:
+                                        code: 400
+                                        message: "Invalid body parameter"
+                                format:
+                                    description: "VPN server ID format error"
+                                    value:
+                                        code: 400
+                                        message: "VPN server ID format error"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '460':
+                    description: Readonly restriction
+                    content:
+                        application/json:
+                            example:
+                                code: 460
+                                message: "VPN server tokyo-1 is only allow startOnly!"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '461':
+                    description: Already in requested state
+                    content:
+                        application/json:
+                            example:
+                                code: 461
+                                message: "VPN server tokyo-1 is already RUNNING!"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '404':
+                    description: Server not found
+                    content:
+                        application/json:
+                            example:
+                                code: 404
+                                message: "Not found VPN server tokyo-1"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '401':
+                    description: Missing/expired token
+                    content:
+                        application/json:
+                            examples:
+                                expired:
+                                    $ref: '#/components/examples/ErrorExpired'
+                                missing:
+                                    $ref: '#/components/examples/ErrorMissing'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '403':
+                    description: AUD not allowed / Invalid token
+                    content:
+                        application/json:
+                            examples:
+                                aud:
+                                    $ref: '#/components/examples/ErrorAUD'
+                                invalid:
+                                    $ref: '#/components/examples/ErrorInvalid'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '500':
+                    description: Internal error
+                    content:
+                        application/json:
+                            example:
+                                code: 500
+                                message: "Internal server error"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+    #OK
+    /vpn/{id}/profile:
+        parameters:
+            -   name: id
+                in: path
+                required: true
+                example: "tokyo-1"
+                schema:
+                    type: string
+            -   name: type
+                in: query
+                required: true
+                examples:
+                    openvpn:
+                        summary: OpenVPN profileType
+                        value: OpenVPN
+                    softether:
+                        summary: SoftEther profileType
+                        value: SoftEther
+                    https:
+                        summary: HTTPS profileType
+                        value: https
+                schema:
+                    type: string
+                    enum: [ OpenVPN, SoftEther, https ]
+        get:
+            summary: Download VPN profileType for user
+            description: "Returns OpenVPN/SoftEther profileType with user cert/key injected"
+            security:
+                -   CfAccessHeader: [ ]
+                -   CfAccessCookie: [ ]
+            responses:
+                '200':
+                    description: Profile file (binary download)
+                    headers:
+                        Content-Disposition:
+                            description: "Indicates that the content is expected to be downloaded and saved locally"
+                            schema:
+                                type: string
+                            example: "attachment; filename=\"OpenVPN_JP_[example@example.com].ovpn"
+                    content:
+                        application/octet-stream:
+                            schema:
+                                type: string
+                                format: binary
+                        application/json:
+                            schema:
+                                properties:
+                                    code:
+                                        type: integer
+                                        example: 200
+                                    data:
+                                        type: object
+                                        properties:
+                                            username:
+                                                type: string
+                                                example: "Username"
+                                            password:
+                                                type: string
+                                                example: "Password"
+                '400':
+                    description: Request format error
+                    content:
+                        application/json:
+                            examples:
+                                missing:
+                                    description: "Missing query parameter"
+                                    value:
+                                        code: 400
+                                        message: "Missing query parameter"
+                                format:
+                                    description: "VPN server ID format error"
+                                    value:
+                                        code: 400
+                                        message: "VPN server ID format error"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '404':
+                    description: Server or profileType not found / user not allowed
+                    content:
+                        application/json:
+                            examples:
+                                server:
+                                    description: "VPN server not found"
+                                    value:
+                                        code: 404
+                                        message: "Not found VPN server tokyo-1"
+                                profile:
+                                    description: "Profile type not found"
+                                    value:
+                                        code: 404
+                                        message: "Not found VPN profileType OpenVPN"
+                                type:
+                                    description: "Profile type unsupported"
+                                    value:
+                                        code: 404
+                                        message: "Not find VPN profileType type you want XX"
+                                user:
+                                    description: "User not in list (Profile not exists for login user)"
+                                    value:
+                                        code: 404
+                                        message: "You Not on the list"
+                                cert:
+                                    description: "OpenVPN/SoftEther cert not found for user"
+                                    value:
+                                        code: 404
+                                        message: "Profile cert Not found"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '401':
+                    description: Missing/expired token
+                    content:
+                        application/json:
+                            examples:
+                                expired:
+                                    $ref: '#/components/examples/ErrorExpired'
+                                missing:
+                                    $ref: '#/components/examples/ErrorMissing'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '403':
+                    description: AUD not allowed / Invalid token
+                    content:
+                        application/json:
+                            examples:
+                                aud:
+                                    $ref: '#/components/examples/ErrorAUD'
+                                invalid:
+                                    $ref: '#/components/examples/ErrorInvalid'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '500':
+                    description: Internal error
+                    content:
+                        application/json:
+                            example:
+                                code: 500
+                                message: "Internal server error"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+    #OK
+    /vpn/v2/ws/ticket:
+        get:
+            summary: Issue WebSocket ticket
+            description: "Generates short-lived ticket bound to caller IP for WS auth"
+            security:
+                -   CfAccessHeader: [ ]
+                -   CfAccessCookie: [ ]
+            responses:
+                '200':
+                    description: Ticket issued
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TicketResponse'
+                '400':
+                    description: Missing IP
+                    content:
+                        application/json:
+                            example:
+                                code: 400
+                                message: "No IP address found."
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '401':
+                    description: Missing/expired token
+                    content:
+                        application/json:
+                            examples:
+                                expired:
+                                    $ref: '#/components/examples/ErrorExpired'
+                                missing:
+                                    $ref: '#/components/examples/ErrorMissing'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '403':
+                    description: AUD not allowed / Invalid token
+                    content:
+                        application/json:
+                            examples:
+                                aud:
+                                    $ref: '#/components/examples/ErrorAUD'
+                                invalid:
+                                    $ref: '#/components/examples/ErrorInvalid'
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                '500':
+                    description: Internal error
+                    content:
+                        application/json:
+                            example:
+                                code: 500
+                                message: "Internal server error"
+                            schema:
+                                $ref: '#/components/schemas/Error'
+    #OK
+    /vpn/v2/ws:
+        get:
+            summary: WebSocket upgrade
+            description: "Connect with ?ticket= from /vpn/v2/ws/ticket to receive broadcasts"
+            parameters:
+                -   name: ticket
+                    in: query
+                    required: true
+                    example: 'Ticket token string'
+                    schema:
+                        type: string
+            responses:
+                '101':
+                    description: Switching Protocols (WebSocket)
+                '400':
+                    description: Invalid ticket
+                    content:
+                        application/json:
+                            examples:
+                                invalid:
+                                    description: "Invalid ticket"
+                                    value:
+                                        code: 400
+                                        message: "Invalid ticket."
+                                format:
+                                    description: "Ticket format error"
+                                    value:
+                                        code: 400
+                                        message: "Invalid ticket format."
+                            schema:
+                                $ref: '#/components/schemas/Error'

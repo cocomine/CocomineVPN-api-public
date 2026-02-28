@@ -1,0 +1,36 @@
+[
+  {
+    "id": "",
+    "name": "台灣",
+    "url": "",
+    "country": "TW",
+    "readonly": "disable",
+    "profiles": [
+      {
+        "type": "OpenVPN",
+        "name": "OpenVPN",
+        "filename": "OpenVPN_TW.ovpn"
+      },
+      {
+        "type": "SoftEther",
+        "name": "SoftEther",
+        "filename": "SoftEther_TW.vpn"
+      },
+      {
+        "type": "SS",
+        "name": "CocomineVPN App",
+        "url": "",
+        "method": "aes-256-gcm"
+      },
+      {
+        "type": "https",
+        "name": "https Proxy",
+        "url": ""
+      },
+      {
+        "type": "sing-box",
+        "name": "機場訂閱"
+      }
+    ]
+  }
+]

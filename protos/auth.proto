@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "./auth";
+
+// Auth service for token verification and key management
+service AuthService {
+  // Get the current public key
+  rpc GetPublicKey(GetPublicKeyRequest) returns (GetPublicKeyResponse);
+}
+
+// Token payload containing user information
+message TokenPayload {
+  string email = 1;
+  string name = 2;
+  string sub = 3;
+  string aud = 4;
+  int64 exp = 5;
+  int64 iat = 6;
+  string iss = 7;
+  string jti = 8;
+}
+
+// Request message for GetPublicKey
+message GetPublicKeyRequest {
+  // Optional key ID to get a specific public key
+  optional string key_id = 1;
+}
+
+// Response message for GetPublicKey
+message GetPublicKeyResponse {
+  string public_key = 2;
+  string key_id = 3;
+}

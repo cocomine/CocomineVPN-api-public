@@ -1,0 +1,26 @@
+[
+    {
+        "email": "",
+        "cert": [
+            {
+                "type": "SoftEther",
+                "vm_id": "",
+                "username": "",
+                "cert": "",
+                "key": ""
+            },
+            {
+                "type": "OpenVPN",
+                "vm_id": "",
+                "cert": "",
+                "key": ""
+            },
+            {
+                "type": "https",
+                "vm_id": "",
+                "username": "",
+                "password": ""
+            }
+        ]
+    }
+]

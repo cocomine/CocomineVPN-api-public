@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CocomineVPN</title>
+    <!-- 這裡的 CSS 主要負責處理手機版 (RWD) 的顯示邏輯 -->
+    <style>
+        /* 基礎重置 */
+        body, table, td, a {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+
+        table, td {
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+
+        img {
+            -ms-interpolation-mode: bicubic;
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+        }
+
+        /* 針對手機尺寸 (小於 600px) 的調整 */
+        @media screen and (max-width: 600px) {
+            .email-container {
+                width: 100% !important;
+                margin: auto !important;
+            }
+
+            .fluid-img {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+            }
+
+            .stack-column {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                direction: ltr !important;
+            }
+
+            .padding-mobile {
+                padding-left: 20px !important;
+                padding-right: 20px !important;
+            }
+        }
+    </style>
+</head>
+<body width="100%" style="margin: 0; padding: 0 !important; mso-line-height-rule: exactly; background-color: #f4f4f4;">
+
+<!-- 最外層背景容器 -->
+<div style="width: 100%; background-color: #f4f4f4;">
+
+    <!-- 主要內容容器 (限制最大寬度 600px) -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"
+           style="background-color: #f4f4f4;">
+        <tr>
+            <td>
+                <!-- 這裡是實際的 Email 內容寬度容器 -->
+                <table class="email-container" role="presentation" border="0" cellpadding="0" cellspacing="0"
+                       width="600" style="margin: 0 auto; background-color: #ffffff;">
+                    <tr>
+                        <td height="10" bgcolor="#2c74b3" style="background:#2c74b3; height:10px; font-size:0"></td>
+                    </tr>
+                    <!-- HEADER 區域: LOGO -->
+                    <tr>
+                        <td style="padding: 10px 40px;" class="padding-mobile">
+                            <a href="https://vpn.cocomine.cc" target="_blank" style="text-decoration: none;">
+                                <img src="https://r2.cocomine.cc/CocomineVPN_header.png"
+                                     width="150"
+                                     height="auto"
+                                     alt="Cocomine VPN"
+                                     style="height: auto; font-family: sans-serif; font-size: 15px; line-height: 15px; color: #555555; display: block; max-width: 100%;">
+                            </a>
+                        </td>
+                    </tr>
+
+                    <!-- BODY 內容區域 -->
+                    <tr>
+                        <td class="padding-mobile"
+                            style="padding: 20px 40px 20px 40px; font-family: sans-serif; font-size: 16px; line-height: 24px; color: #555555;">
+                            <h1 style="margin: 0 0 10px 0; font-family: sans-serif; font-size: 24px; line-height: 30px; color: #333333; font-weight: bold;">
+                                %EMAIL_SUBJECT%
+                            </h1>
+                            <p style="margin: 0 0 20px 0;">
+                                Hi %USER_NAME% !
+                            </p>
+                            %EMAIL_BODY%
+
+                            <!-- 按鈕區域 -->
+                            <table role="presentation" border="0" cellpadding="0" cellspacing="0"
+                                   style="margin: 0 auto;">
+                                <tr>
+                                    <td align="center" bgcolor="#007bff" style="border-radius: 4px;">
+                                        <a href="%LINK%" target="_blank"
+                                           style="font-family: sans-serif; font-size: 16px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 4px; padding: 12px 24px; border: 1px solid #007bff; display: inline-block;">
+                                            點擊查看詳情
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 20px 0 0 0;">
+                                祝順心，<br>
+                                <strong>Cocomine VPN</strong>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- FOOTER 頁尾區域 -->
+                    <tr>
+                        <td align="center" class="padding-mobile">
+                            <img src="https://r2.cocomine.cc/mascot_v2.png"
+                                 width="90%"
+                                 height="auto"
+                                 alt="mascot"
+                                 style="height: auto; font-family: sans-serif; font-size: 15px; line-height: 15px; color: #555555; display: block; max-width: 100%; object-fit: cover; object-position: top">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center"
+                            style="padding: 40px; background-color: #333333; font-family: sans-serif; font-size: 12px; line-height: 18px; color: #ffffff;">
+                            <p style="margin: 0 0 10px 0;">
+                                您收到此電子郵件是因為您訂閱了 Cocomine VPN 的服務。
+                            </p>
+                            <p style="margin: 0 0 10px 0;">
+                                &copy; 2026 Cocomine. All Rights Reserved.
+                            </p>
+                            <p style="margin: 0;">
+                                <a href="https://vpn.cocomine.cc" style="color: #cccccc; text-decoration: underline;">官方網站</a>
+                                <span style="color: #555555;">&nbsp;|&nbsp;</span>
+                                <a href="https://github.com/cocomine/chrome-CocomineVPN/blob/master/PrivacyPolicy.md"
+                                   style="color: #cccccc; text-decoration: underline;">隱私權政策</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+                <!-- Email 內容容器結束 -->
+            </td>
+        </tr>
+    </table>
+</div>
+</body>
+</html>
