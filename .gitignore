@@ -1,0 +1,4 @@
+.env
+.env.*
+services/auth/keys/private.key
+services/auth/keys/public.key
